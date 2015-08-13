@@ -1,34 +1,41 @@
-import asyncore, asynchat
-import os, socket, string
+from twisted.internet.protocol import Factory
+from twisted.protocols.basic import LineReceiver
+from twisted.internet import reactor
+from sets import Set
 
-class HTTPChannel(asynchat.async_chat):
+class ClientHandler(LineReceiver):
+    def __init__(self, factory):
+        self.factory = factory
+        self.state = "clientstate.authenticate"
 
-    def __init__(self, server, sock, addr):
-        asynchat.async_chat.__init__(self, sock)
-        self.set_terminator("\n")
-        self.data = ""
+    def connectionMade(self):
+        self.sendLine("Welcome to Awls official chat service")
 
-    def collect_incoming_data(self, data):
-        self.data = self.data + data
+    def lineReceived(self, line):
+        if self.state == "clientstate.authenticate":
+            self.handle_authenticate(line)
+        elif self.state == "clientstate.active":
+            self.handle_active(line)
 
-    def found_terminator(self):
-        print self.data.strip()
-        self.data = ""
+    def handle_authenticate(self, line):
+        if line == "God save the Awls!":
+            self.state = "clientstate.active"
+            self.factory.active_users.add(self)
+            self.sendLine("God save the Awls, indeed!")
+        else:
+            self.transport.loseConnection()
 
-class HTTPServer(asyncore.dispatcher):
+    def handle_active(self, line):
+        for active_user in self.factory.active_users:
+            if (active_user != self):
+                active_user.sendLine(line)
 
-    def __init__(self, port):
-        asyncore.dispatcher.__init__(self)
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.bind(("", port))
-        self.listen(5)
+class ChatFactory(Factory):
+    def __init__(self):
+        self.active_users = Set()
 
-    def handle_accept(self):
-        conn, addr = self.accept()
-        HTTPChannel(self, conn, addr)
+    def buildProtocol(self, addr):
+        return ClientHandler(self)
 
-PORT = 8000
-s = HTTPServer(PORT)
-print "God save the Awls!"
-print "Server started on port", PORT, "..."
-asyncore.loop()
+reactor.listenTCP(8000, ChatFactory())
+reactor.run()
