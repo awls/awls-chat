@@ -16,31 +16,32 @@ class ClientProtocol(LineReceiver):
     def connectionMade(self):
         self.state = STATE.AUTHENTIFICATION
         self.sendLine("Welcome to the official Awls chat service!")
+        
+    def connectionLost(self, reason):
+        self.factory.leave(self)
 
     def lineReceived(self, line):
         if self.state == STATE.AUTHENTIFICATION:
-            self.handle_authenticate(line)
+            self.authenticate(line)
         elif self.state == STATE.LOGIN:
-            self.handle_login(line)
+            self.login(line)
         elif self.state == STATE.CHAT:                
-            self.handle_chat(line)
+            self.chat(line)
 
-    def handle_authenticate(self, msg):
+    def authenticate(self, msg):
         if msg == "God save the Awls!":
             self.state = STATE.LOGIN
-            self.sendLine("God save the Awls, indeed!")
             self.sendLine("Please introduce yourself.")
         else:
             self.transport.loseConnection()
 
-    def handle_login(self, msg):
+    def login(self, msg):
         self.name = msg
-        self.factory.users.add(self)
         self.state = STATE.CHAT
-        self.sendLine("Welcome, %s." % self.name)
+        self.factory.join(self)
                         
-    def handle_chat(self, line):
-        self.factory.broadcast(self, line)
+    def chat(self, line):
+        self.factory.onUserMessage(self, line)
 
 class ChatFactory(Factory):
     def __init__(self):
@@ -49,10 +50,25 @@ class ChatFactory(Factory):
     def buildProtocol(self, addr):
         return ClientProtocol(self)
 
-    def broadcast(self, protocol, msg):
+    def onUserMessage(self, protocol, msg):
+        self.broadcast("%s: %s" % (protocol.name, msg))
+
+    def broadcast(self, msg):
         for user in self.users:
-            if user != protocol:
-                user.sendLine("%s: %s" % (protocol.name, msg))
+            user.sendLine(msg)        
+
+    def join(self, protocol):
+        for user in self.users:
+            protocol.sendLine("%s joined the room." % user.name);
+        self.users.add(protocol)
+        for user in self.users:
+            user.sendLine("%s joined the room." % protocol.name)
+
+    def leave(self, protocol):
+        if protocol in self.users:
+            self.users.remove(protocol)
+            self.broadcast("%s left the room." % protocol.name)
+            
 
 reactor.listenTCP(8000, ChatFactory())
 reactor.run()
