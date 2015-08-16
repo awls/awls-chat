@@ -14,7 +14,7 @@ public class StreamsChatServer implements ChatServer {
 
     public StreamsChatServer(ChatServerListener listener, InputStream inputStream, OutputStream outputStream) {
         this.listener = listener;
-        this.in = new LineInput(inputStream) {
+        this.in = new LineInput(inputStream, false) {
             @Override
             protected void handleLine(String line) {
                 StreamsChatServer.this.listener.receiveMessage(line);
@@ -22,16 +22,23 @@ public class StreamsChatServer implements ChatServer {
 
             @Override
             protected void handleError(IOException e) {
-                e.printStackTrace();
+                StreamsChatServer.this.listener.onErrorOccurred(e);
+            }
+
+            @Override
+            protected void handleStopped() {
+                StreamsChatServer.this.listener.onStopped();
             }
         };
         this.out = new PrintWriter(new OutputStreamWriter(outputStream));
     }
 
+    @Override
     public void start() {
         in.start();
     }
 
+    @Override
     public void stop() {
         in.stop();
     }
