@@ -13,7 +13,7 @@ public class ConsoleChatView implements ChatView {
 
     public ConsoleChatView(UserListener listener) {
         this.listener = listener;
-        this.in = new LineInput(System.in) {
+        this.in = new LineInput(System.in, true) {
             @Override
             protected void handleLine(String line) {
                 ConsoleChatView.this.listener.onUserInput(line);
@@ -23,13 +23,20 @@ public class ConsoleChatView implements ChatView {
             protected void handleError(IOException e) {
                 e.printStackTrace();
             }
+
+            @Override
+            protected void handleStopped() {
+
+            }
         };
     }
 
+    @Override
     public void start() {
         in.start();
     }
 
+    @Override
     public void stop() {
         in.stop();
     }

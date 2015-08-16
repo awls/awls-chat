@@ -11,9 +11,10 @@ public abstract class LineInput {
     private final Thread readingThread;
     private volatile boolean shouldStop = false;
 
-    public LineInput(InputStream inputStream) {
+    public LineInput(InputStream inputStream, boolean isDaemon) {
         this.in = new BufferedReader(new InputStreamReader(inputStream));
         this.readingThread = new Thread(this::readInput);
+        this.readingThread.setDaemon(isDaemon);
     }
 
     public void start() {
@@ -36,11 +37,17 @@ public abstract class LineInput {
             if (!shouldStop) {
                 handleError(e);
             }
+        } finally {
+            if (!shouldStop) {
+                handleStopped();
+            }
         }
     }
 
     protected abstract void handleLine(String line);
 
     protected abstract void handleError(IOException e);
+
+    protected abstract void handleStopped();
 
 }

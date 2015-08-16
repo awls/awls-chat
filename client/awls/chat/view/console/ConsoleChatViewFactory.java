@@ -8,9 +8,7 @@ public class ConsoleChatViewFactory implements ChatViewFactory {
 
     @Override
     public ChatView create(UserListener listener) {
-        ConsoleChatView consoleChatView = new ConsoleChatView(listener);
-        consoleChatView.start();
-        return consoleChatView;
+        return new ConsoleChatView(listener);
     }
 
 }

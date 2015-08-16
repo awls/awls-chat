@@ -1,6 +1,8 @@
 package awls.chat.server;
 
-public interface ChatServer {
+import awls.chat.common.Component;
+
+public interface ChatServer extends Component {
 
     void sendMessage(String message);
 

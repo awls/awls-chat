@@ -25,9 +25,7 @@ public class SocketChatServerFactory implements ChatServerFactory {
             Socket socket = new Socket(host, port);
             InputStream inputStream = socket.getInputStream();
             OutputStream outputStream = socket.getOutputStream();
-            StreamsChatServer streamsChatServer = new StreamsChatServer(listener, inputStream, outputStream);
-            streamsChatServer.start();
-            return streamsChatServer;
+            return new StreamsChatServer(listener, inputStream, outputStream);
         } catch (IOException e) {
             throw new RuntimeException("Failed to connect to server: " + e, e);
         }
